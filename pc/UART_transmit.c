@@ -2,6 +2,11 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdint.h>
+#include "../protocol/commands.h"
+#include "../protocol/packet.h"
+#include "../protocol/crc.h"
+#include "../protocol/packet_serialize.h"
+
 
 int main() {
     HANDLE hSerial;
@@ -48,15 +53,33 @@ int main() {
     timeouts.WriteTotalTimeoutMultiplier = 0;
     SetCommTimeouts(hSerial, &timeouts);
 
-    uint8_t packet[] = {0xFF , 0x03 , 0x03 , 0x04 , 0x05 , 0x02};
+    // Packet initialization
+    packet_t packet = {0};
+    uint8_t data[2] = {0x04,0x06};
+    uint8_t data_length = 2;
+    packet_build(&packet, CMD_LED_ON, data_length , data);
+
+    // Debuging part
+    printf("\npacket.header : %x", packet.header);
+    printf("\nCOMMAND : %d", CMD_LED_OFF);
+    printf("\ndata[0] : %x", data[0]);
+    printf("\ndata[1] : %x", data[1]);
+    printf("\nCRC : %x", packet.crc);
+    printf("\n");
+
+    // Packet serialization
+    uint8_t tx_buffer[260];
+    uint8_t len = 0;
+    packet_serialize(&packet , tx_buffer , &len);
+
     DWORD bytesWritten = 0;
-
-    BOOL ok = WriteFile(hSerial, packet, sizeof(packet), &bytesWritten, NULL);
-
-    // const char *msg = "Hello UART\r\n";
-    // DWORD bytesWritten = 0;
-
-    // BOOL ok = WriteFile(hSerial, msg, strlen(msg), &bytesWritten, NULL);
+    // BOOL ok = WriteFile(hSerial, tx_buffer, len, &bytesWritten, NULL);
+    BOOL ok = 0;
+    for (int i = 0; i < len; i++)
+    {
+        ok = WriteFile(hSerial, &tx_buffer[i], 1, &bytesWritten, NULL);
+        Sleep(2);   //  2–10 ms for improve stable receiving by STM32
+    }
 
     if (!ok) {
         printf("WriteFile failed\n");
@@ -67,3 +90,4 @@ int main() {
     CloseHandle(hSerial);
     return 0;
 }
+

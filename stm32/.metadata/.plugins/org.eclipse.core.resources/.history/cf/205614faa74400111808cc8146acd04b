@@ -1,0 +1,9 @@
+#ifndef APP_RTOS_H
+#define APP_RTOS_H
+
+#include "cmsis_os.h"
+
+extern osSemaphoreId_t BinarySem_parserHandle;
+
+
+#endif
